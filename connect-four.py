@@ -1,14 +1,16 @@
 import sys
-import numpy as np
-
+from game import Game
+import pygame
 args = sys.argv
+NUM_ROWS, NUM_COLS = int(args[1]), int(args[2])
 
-NUM_ROWS = args[0]
-NUM_COLS = args[1]
-EMPTY = 0
-BLUE = 1
-RED = 2
+game = Game(NUM_ROWS, NUM_COLS)
 
+SQUARESIZE = 100
+width = NUM_COLS * SQUARESIZE
+height = (NUM_ROWS+1) * SQUARESIZE
+size = (width, height)
+screen = pygame.display.set_mode(size)
 
-board = np.zeros((NUM_ROWS, NUM_COLS), dtype=np.uint8)
-
+while True:
+    game.draw_board(screen, SQUARESIZE)
