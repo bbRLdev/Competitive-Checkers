@@ -19,6 +19,13 @@ class Game():
     def is_valid_location(self, col):
         return self.board[self.row_count-1][col] == 0
 
+    def get_valid_moves(self):
+        moves = []
+        for a in range(self.col_count):
+            if self.is_valid_location(a):
+                moves.append(a)
+        return moves
+
     def get_next_open_row(self, col):
         for r in range(self.row_count):
             if self.board[r][col] == 0:
