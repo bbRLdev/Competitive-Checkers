@@ -7,6 +7,7 @@ BLACK = (0,0,0)
 RED = (255,0,0)
 YELLOW = (255,255,0)
 
+
 class Game():
     def __init__(self, r, c):
         self.row_count = r
@@ -25,11 +26,16 @@ class Game():
             if self.is_valid_location(a):
                 moves.append(a)
         return moves
+    def drop_piece(self, col, piece):
+        row = self.get_next_open_row(col)
+        self.board[row][col] = piece
 
     def get_next_open_row(self, col):
         for r in range(self.row_count):
             if self.board[r][col] == 0:
                 return r
+    def get_board_dimensions(self):
+        return self.row_count, self.col_count
 
     def print_board(self):
         print(np.flip(self.board, 0))
