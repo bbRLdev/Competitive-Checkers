@@ -9,10 +9,13 @@ YELLOW = (255,255,0)
 
 
 class Game():
-    def __init__(self, r, c):
+    def __init__(self, r, c, board=None):
         self.row_count = r
         self.col_count = c
-        self.board = np.zeros((r, c), dtype=np.int8)
+        if board is None:
+            self.board = np.zeros((r, c), dtype=np.int8)
+        else:
+            self.board = np.copy(board)
 
     def drop_piece(self, row, col, piece):
         self.board[row][col] = piece
@@ -39,6 +42,12 @@ class Game():
 
     def print_board(self):
         print(np.flip(self.board, 0))
+
+    def generate_successor(self, col, piece):
+        suc = Game(self.row_count, self.col_count, self.board)
+        suc.drop_piece(col, piece)
+        return suc
+
 
     def winning_move(self, piece):
         # Check horizontal locations for win
