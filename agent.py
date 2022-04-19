@@ -22,32 +22,48 @@ class RandomAgent(Agent):
         moves = game.get_valid_moves()
         return np.random.choice(moves)
 
-class FeatureAgent(Agent):
+class SARSA_FeatureAgent(Agent):
     def __init__(self, color) -> None:
         super().__init__(color)
-        self.feature_functions = [self.block_cols(), self.win_cols(), self.opp_pieces_per_col(), self.my_pieces_per_col(), self.base3_rows(), self.base3_cols()]
+        self.feature_functions = [self.opp_win(), self.my_win(), self.losing_moves(), self.opp_pieces_per_col(), self.my_pieces_per_col(), self.base3_rows(), self.base3_cols()]
 
     def get_action(self, game) -> int:
-        vect = self.state_to_vect(game.board)
+        vect = self.state_to_vect(game)
 
-    def state_to_vect(self, state):
+    def feature_vector_len(self):
+        return 7 * len(self.feature_functions)
+
+    def state_to_vect(self, game):
         state_vect = []
         for feat_func  in self.feature_functions:
-            state_vect += feat_func(state)
+            state_vect += feat_func(self, game)
     
-    def block_cols(self, board):
-        pass
+    def opp_win(self, game):
+        return winning_moves(self.opponent_color, game) #moves the op can make to win
+    
+    def my_win(self, game):
+        return winning_moves(self.color, game)
 
-    def win_cols(self, board):
-        pass
+    #moves that enables opp win
+    def losing_moves(self,game):
+        board = game.board
+        ret = []
+        rows, cols = board.shape() #get dimensions of board
+        for c in range(cols):
+            next_board = game.generate_successor(c, self.color)
+            if next_board.generate_successor(c, self.opponent_color).winning_move(self.opponent_color):
+                ret.append(1)
+            else:
+                ret.append(0)
 
-    def opp_pieces_per_col(self, board):
-        return pieces_per_col(self.opponent_color, board)
+    def opp_pieces_per_col(self, game):
+        return pieces_per_col(self.opponent_color, game.board)
 
-    def my_pieces_per_col(self, board):
-        return pieces_per_col(self.color, board)
+    def my_pieces_per_col(self, game):
+        return pieces_per_col(self.color, game.board)
 
-    def base3_rows(self, board):
+    def base3_rows(self, game):
+        board = game.board
         ret = []
         rows, cols = board.shape() #get dimensions of board
         for r in range(rows):
@@ -59,7 +75,8 @@ class FeatureAgent(Agent):
             ret.append(val)
         return ret
 
-    def base3_cols(self, board):
+    def base3_cols(self, game):
+        board = game.board
         ret = []
         rows, cols = board.shape() #get dimensions of board
         for c in range(cols):
@@ -71,9 +88,9 @@ class FeatureAgent(Agent):
             ret.append(val)
         return ret
 
-    def base3_diags(self, board):
-        ret = []
-        rows, cols = board.shape() #get dimensions of board
+    # def base3_diags(self, board): #probs useless
+    #     ret = []
+    #     rows, cols = board.shape() #get dimensions of board
 
 def pieces_per_col(color, board):
     ret = []
@@ -84,6 +101,16 @@ def pieces_per_col(color, board):
         count = np.sum(loc[c])
         ret.append(count)
     return ret
+
+def winning_moves(color, game : Game):
+    board = game.board
+    ret = []
+    rows, cols = board.shape() #get dimensions of board
+    for c in range(cols):
+        if game.generate_successor(c, color).winning_move(color):
+            ret.append(1)
+        else:
+            ret.append(0)
 
 
 class AlphaBetaAgent(Agent):
