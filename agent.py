@@ -1,5 +1,6 @@
 from game import Game
 import numpy as np
+import math
 
 class Agent(): 
     def __init__(self, color) -> None:
@@ -24,7 +25,7 @@ class RandomAgent(Agent):
 class FeatureAgent(Agent):
     def __init__(self, color) -> None:
         super().__init__(color)
-        self.feature_functions = [block_cols(), win_cols(), opp_pieces_per_col(), my_pieces_per_col()]
+        self.feature_functions = [self.block_cols(), self.win_cols(), self.opp_pieces_per_col(), self.my_pieces_per_col(), self.base3_rows(), self.base3_cols()]
 
     def get_action(self, game) -> int:
         vect = self.state_to_vect(game.board)
@@ -34,34 +35,58 @@ class FeatureAgent(Agent):
         for feat_func  in self.feature_functions:
             state_vect += feat_func(state)
     
-def block_cols(board):
-    pass
+    def block_cols(self, board):
+        pass
 
-def win_cols(board):
-    pass
+    def win_cols(self, board):
+        pass
 
-def opp_pieces_per_col(board, opp_color):
+    def opp_pieces_per_col(self, board):
+        return pieces_per_col(self.opponent_color, board)
+
+    def my_pieces_per_col(self, board):
+        return pieces_per_col(self.color, board)
+
+    def base3_rows(self, board):
+        ret = []
+        rows, cols = board.shape() #get dimensions of board
+        for r in range(rows):
+            val = 0
+            power = 0
+            for c in range(cols):
+                val += board[r][c] * math.pow(3, power)
+                power += 1
+            ret.append(val)
+        return ret
+
+    def base3_cols(self, board):
+        ret = []
+        rows, cols = board.shape() #get dimensions of board
+        for c in range(cols):
+            val = 0
+            power = 0
+            for r in range(rows):
+                val += board[r][c] * math.pow(3, power)
+                power += 1
+            ret.append(val)
+        return ret
+
+    def base3_diags(self, board):
+        ret = []
+        rows, cols = board.shape() #get dimensions of board
+
+def pieces_per_col(color, board):
     ret = []
     print(board.shape())
     rows, cols = board.shape() #get dimensions of board
-    np.where(board == opp_color, board, True)
+    loc = np.where(board == color, 1, 0)
     for c in range(cols):
-        count = 0
-        for r in range(rows):
-            if board[r, c]:
-                bool = False
-        #use numpy.where
-
-    return result
-        
-def my_pieces_per_col(board, my_color):
-    pass#same as above
+        count = np.sum(loc[c])
+        ret.append(count)
+    return ret
 
 
 class AlphaBetaAgent(Agent):
-    """
-      Your minimax agent with alpha-beta pruning (question 3)
-    """
     def __init__(self, color, depth) -> None:
         super().__init__(color)
         self.depth = depth
@@ -70,7 +95,6 @@ class AlphaBetaAgent(Agent):
         """
           Returns the minimax action using self.depth and self.evaluationFunction
         """
-        "*** YOUR CODE HERE ***"
         index = 0
         alpha = float("-inf")
         beta =  float("inf")
