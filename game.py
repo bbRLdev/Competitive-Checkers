@@ -1,6 +1,6 @@
 import numpy as np
 import pygame
-
+from scipy.signal import convolve2d 
 
 BLUE = (0,0,255)
 BLACK = (0,0,0)
@@ -17,8 +17,6 @@ class Game():
         else:
             self.board = np.copy(board)
 
-    def drop_piece(self, row, col, piece):
-        self.board[row][col] = piece
 
     def is_valid_location(self, col):
         return self.board[self.row_count-1][col] == 0
@@ -48,7 +46,17 @@ class Game():
         suc.drop_piece(col, piece)
         return suc
 
-
+    def winning_move_faster(self, piece):
+        horizontal_kernel = np.array([[1, 1, 1, 1]])
+        vertical_kernel = np.transpose(horizontal_kernel)
+        diag1_kernel = np.eye(4, dtype=np.uint8)
+        diag2_kernel = np.fliplr(diag1_kernel)
+        kernels = [horizontal_kernel, vertical_kernel, diag1_kernel, diag2_kernel]
+        for kernel in kernels:
+            if (convolve2d(self.board == piece, kernel, mode="valid") == 4).any():
+                return True
+        return False
+        
     def winning_move(self, piece):
         # Check horizontal locations for win
         for c in range(self.col_count-3):

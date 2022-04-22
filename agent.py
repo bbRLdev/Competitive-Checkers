@@ -1,6 +1,9 @@
 from game import Game
 import numpy as np
 import math
+from scipy.signal import convolve2d 
+
+FEAT_EXTRACTOR_LENS = [7,7,7,7,7,6,7]
 
 class Agent(): 
     def __init__(self, color) -> None:
@@ -23,20 +26,50 @@ class RandomAgent(Agent):
         return np.random.choice(moves)
 
 class SARSA_FeatureAgent(Agent):
-    def __init__(self, color) -> None:
+    def __init__(self, color, nA = 7) -> None:
         super().__init__(color)
-        self.feature_functions = [self.opp_win(), self.my_win(), self.losing_moves(), self.opp_pieces_per_col(), self.my_pieces_per_col(), self.base3_rows(), self.base3_cols()]
+        self.feature_functions = [self.opp_win, self.my_win, self.losing_moves, self.opp_pieces_per_col, self.my_pieces_per_col, self.base3_rows, self.base3_cols]
+        self.num_actions = nA
+        self.w = np.zeros(self.feature_vector_len() * nA)
+    
+    def get_action(self, game : Game) -> int:
+        if len(game.get_valid_moves()) == 0:
+            return None
+        Q = [np.dot(self.w, self(game, False, a)) for a in range(self.num_actions)]
+        act = np.argmax(Q)
+        while not game.is_valid_location(act):
+            Q[act] = np.NINF
+            act = np.argmax(Q)
+        return act
 
-    def get_action(self, game) -> int:
-        vect = self.state_to_vect(game)
+    def set_weights(self, weights):
+        self.w = weights
 
     def feature_vector_len(self):
-        return 7 * len(self.feature_functions)
+        # return self.num_actions * len(self.feature_functions)
+        return np.sum(FEAT_EXTRACTOR_LENS)
+
+    def __call__(self, game, done, action):
+        if(done):
+            return np.zeros(self.num_actions * self.feature_vector_len())
+        x = self.get_state_action_vector(game, action)
+        return x
+
+    def get_state_action_vector(self, game : Game, action):
+        vals = []
+        for a in range(self.num_actions):
+            if action == a:
+                vals.extend(self.state_to_vect(game))
+            else:
+                vals.extend([0 for _ in range(self.feature_vector_len())])
+        vec = np.array(vals, dtype=np.float32)
+        return vec
 
     def state_to_vect(self, game):
         state_vect = []
         for feat_func  in self.feature_functions:
-            state_vect += feat_func(self, game)
+            state_vect.extend(feat_func(game))
+        return state_vect
     
     def opp_win(self, game):
         return winning_moves(self.opponent_color, game) #moves the op can make to win
@@ -45,16 +78,20 @@ class SARSA_FeatureAgent(Agent):
         return winning_moves(self.color, game)
 
     #moves that enables opp win
-    def losing_moves(self,game):
+    def losing_moves(self,game: Game):
         board = game.board
         ret = []
-        rows, cols = board.shape() #get dimensions of board
+        rows, cols = board.shape #get dimensions of board
         for c in range(cols):
-            next_board = game.generate_successor(c, self.color)
-            if next_board.generate_successor(c, self.opponent_color).winning_move(self.opponent_color):
-                ret.append(1)
+            if game.is_valid_location(c):
+                next_board = game.generate_successor(c, self.color)
+                if next_board.is_valid_location(c) and next_board.generate_successor(c, self.opponent_color).winning_move(self.opponent_color):
+                    ret.append(1)
+                else:
+                    ret.append(0)
             else:
                 ret.append(0)
+        return ret
 
     def opp_pieces_per_col(self, game):
         return pieces_per_col(self.opponent_color, game.board)
@@ -65,53 +102,51 @@ class SARSA_FeatureAgent(Agent):
     def base3_rows(self, game):
         board = game.board
         ret = []
-        rows, cols = board.shape() #get dimensions of board
+        rows, cols = board.shape #get dimensions of board
         for r in range(rows):
-            val = 0
+            val = 0.0
             power = 0
             for c in range(cols):
                 val += board[r][c] * math.pow(3, power)
                 power += 1
+            val = val / (math.pow(3, 7) - 1) # normalize
             ret.append(val)
         return ret
 
     def base3_cols(self, game):
         board = game.board
         ret = []
-        rows, cols = board.shape() #get dimensions of board
+        rows, cols = board.shape #get dimensions of board
         for c in range(cols):
-            val = 0
+            val = 0.0
             power = 0
             for r in range(rows):
                 val += board[r][c] * math.pow(3, power)
                 power += 1
+            val = val / (math.pow(3, 6) - 1) #normalize
             ret.append(val)
         return ret
 
-    # def base3_diags(self, board): #probs useless
-    #     ret = []
-    #     rows, cols = board.shape() #get dimensions of board
-
 def pieces_per_col(color, board):
     ret = []
-    print(board.shape())
-    rows, cols = board.shape() #get dimensions of board
+    rows, cols = board.shape #get dimensions of board
     loc = np.where(board == color, 1, 0)
     for c in range(cols):
-        count = np.sum(loc[c])
+        loc_T = np.transpose(loc)
+        count = np.sum(loc_T[c]) / rows
         ret.append(count)
     return ret
 
 def winning_moves(color, game : Game):
     board = game.board
     ret = []
-    rows, cols = board.shape() #get dimensions of board
+    rows, cols = board.shape #get dimensions of board
     for c in range(cols):
-        if game.generate_successor(c, color).winning_move(color):
+        if game.is_valid_location(c) and game.generate_successor(c, color).winning_move(color):
             ret.append(1)
         else:
             ret.append(0)
-
+    return ret
 
 class AlphaBetaAgent(Agent):
     def __init__(self, color, depth) -> None:
@@ -169,7 +204,48 @@ class AlphaBetaAgent(Agent):
                 else:
                     beta = min(beta, v)
         return v, action
+    
+    def evaluation_function(self, game: Game):
+        score = 0.0
 
+        horizontal_kernel = np.array([[1, 1, 1, 1]])
+        vertical_kernel = np.transpose(horizontal_kernel)
+        diag1_kernel = np.eye(4, dtype=np.uint8)
+        diag2_kernel = np.fliplr(diag1_kernel)
+        kernels = [horizontal_kernel, vertical_kernel, diag1_kernel, diag2_kernel]
+        for kernel in kernels:
+            if (convolve2d(game.board == self.color, kernel, mode="valid") == 4).any():
+                score += 1000
+            if (convolve2d(game.board == self.opponent_color, kernel, mode="valid") == 4).any():
+                score -= 1000
+
+        horizontal_kernel = np.array([[1, 1, 1]])
+        vertical_kernel = np.transpose(horizontal_kernel)
+        diag1_kernel = np.eye(3, dtype=np.uint8)
+        diag2_kernel = np.fliplr(diag1_kernel)
+        kernels = [horizontal_kernel, vertical_kernel, diag1_kernel, diag2_kernel]
+        for kernel in kernels:
+            if (convolve2d(game.board == self.color, kernel, mode="valid") == 3).any():
+                score += 100
+            if (convolve2d(game.board == self.opponent_color, kernel, mode="valid") == 3).any():
+                score -= 100
+
+        horizontal_kernel = np.array([[1, 1]])
+        vertical_kernel = np.transpose(horizontal_kernel)
+        diag1_kernel = np.eye(2, dtype=np.uint8)
+        diag2_kernel = np.fliplr(diag1_kernel)
+        kernels = [horizontal_kernel, vertical_kernel, diag1_kernel, diag2_kernel]
+        for kernel in kernels:
+            if (convolve2d(game.board == self.color, kernel, mode="valid") == 2).any():
+                score += 10
+            if (convolve2d(game.board == self.opponent_color, kernel, mode="valid") == 2).any():
+                score -= 10
+
+        return score
+
+class LegacyAlphaBeta(AlphaBetaAgent):
+    def __init__(self, color, depth) -> None:
+        super().__init__(color, depth)
     def evaluation_function(self, game: Game):
         score = 0
 
