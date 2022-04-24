@@ -62,12 +62,14 @@ def SarsaLambda(
 
     # X.set_weights(w)
     print("win count: ", win_count)
+    np.save("out.npy", w)
     # print(boards)
     return w
 
 def step(game : Game, action, opponent : Agent, win_count):
     player_color = opponent.opponent_color
     game.drop_piece(action, player_color)
+    game.print_board()
     # game.print_board()
     reward = 0.0
     if game.winning_move_faster(player_color):
@@ -80,6 +82,8 @@ def step(game : Game, action, opponent : Agent, win_count):
     if opponent_action == None:
         return game, 0.0, True, win_count
     game.drop_piece(opponent_action, opponent.color)
+    game.print_board()
+
     # game.print_board()
     if game.winning_move_faster(opponent.color):
         reward = -1.0

@@ -3,7 +3,7 @@ import numpy as np
 import math
 from scipy.signal import convolve2d 
 
-FEAT_EXTRACTOR_LENS = [7,7,7,7,7,6,7]
+FEAT_EXTRACTOR_LENS = [7,7,7,7,7]
 
 class Agent(): 
     def __init__(self, color) -> None:
@@ -26,11 +26,13 @@ class RandomAgent(Agent):
         return np.random.choice(moves)
 
 class SARSA_FeatureAgent(Agent):
-    def __init__(self, color, nA = 7) -> None:
+    def __init__(self, color, nA = 7, w=None) -> None:
         super().__init__(color)
-        self.feature_functions = [self.opp_win, self.my_win, self.losing_moves, self.opp_pieces_per_col, self.my_pieces_per_col, self.base3_rows, self.base3_cols]
+        # self.feature_functions = [self.opp_win, self.my_win, self.losing_moves, self.opp_pieces_per_col, self.my_pieces_per_col, self.base3_rows, self.base3_cols]
+        self.feature_functions = [self.opp_win, self.my_win, self.losing_moves, self.opp_pieces_per_col, self.my_pieces_per_col]
+
         self.num_actions = nA
-        self.w = np.zeros(self.feature_vector_len() * nA)
+
     
     def get_action(self, game : Game) -> int:
         if len(game.get_valid_moves()) == 0:
