@@ -25,6 +25,20 @@ class RandomAgent(Agent):
         moves = game.get_valid_moves()
         return np.random.choice(moves)
 
+class HumanAgent(Agent):
+    def __init__(self, color) -> None:
+        super().__init__(color)
+    
+    def get_action(self, game : Game) -> int:
+        input_action = input()
+        action = int(input_action)
+        while action < 0 or action > 6 or action not in game.get_valid_moves():
+            print("Select a valid piece placement from 0-6")
+            input_action = input()
+            action = int(input_action)
+
+        return action
+
 class SARSA_FeatureAgent(Agent):
     def __init__(self, color, nA = 7, w=None) -> None:
         super().__init__(color)
@@ -33,6 +47,17 @@ class SARSA_FeatureAgent(Agent):
 
         self.num_actions = nA
 
+    def get_perimeter(self, game: Game):
+        perimeter = []
+        off_perimeter = []
+        for c in range(len(game.col_count)):
+            r = game.get_next_open_row(c)
+            if r != None:
+                perimeter.append((r, c))
+                if r + 1 < game.row_count and game.board[r + 1][c] == 0:
+                    off_perimeter.append((r + 1, c))
+        return perimeter, off_perimeter
+    
     
     def get_action(self, game : Game) -> int:
         if len(game.get_valid_moves()) == 0:
@@ -101,33 +126,33 @@ class SARSA_FeatureAgent(Agent):
     def my_pieces_per_col(self, game):
         return pieces_per_col(self.color, game.board)
 
-    def base3_rows(self, game):
-        board = game.board
-        ret = []
-        rows, cols = board.shape #get dimensions of board
-        for r in range(rows):
-            val = 0.0
-            power = 0
-            for c in range(cols):
-                val += board[r][c] * math.pow(3, power)
-                power += 1
-            val = val / (math.pow(3, 7) - 1) # normalize
-            ret.append(val)
-        return ret
+    # def base3_rows(self, game):
+    #     board = game.board
+    #     ret = []
+    #     rows, cols = board.shape #get dimensions of board
+    #     for r in range(rows):
+    #         val = 0.0
+    #         power = 0
+    #         for c in range(cols):
+    #             val += board[r][c] * math.pow(3, power)
+    #             power += 1
+    #         val = val / (math.pow(3, 7) - 1) # normalize
+    #         ret.append(val)
+    #     return ret
 
-    def base3_cols(self, game):
-        board = game.board
-        ret = []
-        rows, cols = board.shape #get dimensions of board
-        for c in range(cols):
-            val = 0.0
-            power = 0
-            for r in range(rows):
-                val += board[r][c] * math.pow(3, power)
-                power += 1
-            val = val / (math.pow(3, 6) - 1) #normalize
-            ret.append(val)
-        return ret
+    # def base3_cols(self, game):
+    #     board = game.board
+    #     ret = []
+    #     rows, cols = board.shape #get dimensions of board
+    #     for c in range(cols):
+    #         val = 0.0
+    #         power = 0
+    #         for r in range(rows):
+    #             val += board[r][c] * math.pow(3, power)
+    #             power += 1
+    #         val = val / (math.pow(3, 6) - 1) #normalize
+    #         ret.append(val)
+    #     return ret
 
 def pieces_per_col(color, board):
     ret = []

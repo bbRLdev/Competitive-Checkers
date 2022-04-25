@@ -1,7 +1,7 @@
 import numpy as np
 import sys
-
-from agent import AlphaBetaAgent, SARSA_FeatureAgent
+from tqdm import tqdm
+from agent import AlphaBetaAgent, SARSA_FeatureAgent, RandomAgent, LegacyAlphaBeta, HumanAgent
 from game import Game
 
 args = sys.argv
@@ -14,8 +14,10 @@ print(w)
 p1 = SARSA_FeatureAgent(1, 7)
 p1.set_weights(w)
 
-p2 = AlphaBetaAgent(2, 1)
-for _ in range(10):
+p2 = HumanAgent(2)
+wins = 0
+# p2 = RandomAgent(2)
+for _ in tqdm(range(10)):
     game = Game(NUM_ROWS, NUM_COLS)
     while True:
         #p1 turn
@@ -25,6 +27,7 @@ for _ in range(10):
         game.print_board()
         if game.winning_move_faster(1):
             print("P1 Won!")
+            wins += 1
             break
         if len(game.get_valid_moves()) == 0:
             print("DRAW")
@@ -40,3 +43,5 @@ for _ in range(10):
         if len(game.get_valid_moves()) == 0:
             print("DRAW")
             break
+
+print(wins)

@@ -35,6 +35,7 @@ class Game():
         for r in range(self.row_count):
             if self.board[r][col] == 0:
                 return r
+        return None
     def get_board_dimensions(self):
         return self.row_count, self.col_count
 
@@ -56,6 +57,31 @@ class Game():
             if (convolve2d(self.board == piece, kernel, mode="valid") == 4).any():
                 return True
         return False
+
+    def on_perimeter_3_threat(self, color, coordinate):
+        for c in range(self.col_count-3):
+            for r in range(self.row_count):
+                if self.board[r][c] == color and self.board[r][c+1] == color and self.board[r][c+2] == color and self.board[r][c+3] == color:
+                    return True
+
+        # Check vertical locations for win
+        for c in range(self.col_count):
+            for r in range(self.row_count-3):
+                if self.board[r][c] == piece and self.board[r+1][c] == piece and self.board[r+2][c] == piece and self.board[r+3][c] == piece:
+                    return True
+
+        # Check positively sloped diaganols
+        for c in range(self.col_count-3):
+            for r in range(self.row_count-3):
+                if self.board[r][c] == piece and self.board[r+1][c+1] == piece and self.board[r+2][c+2] == piece and self.board[r+3][c+3] == piece:
+                    return True
+
+        # Check negatively sloped diaganols
+        for c in range(self.col_count-3):
+            for r in range(3, self.row_count):
+                if self.board[r][c] == piece and self.board[r-1][c+1] == piece and self.board[r-2][c+2] == piece and self.board[r-3][c+3] == piece:
+                    return True
+        
         
     def winning_move(self, piece):
         # Check horizontal locations for win
