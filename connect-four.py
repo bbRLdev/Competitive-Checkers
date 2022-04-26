@@ -38,6 +38,15 @@ def SarsaLambda(
                 if Q[act] == np.NINF:
                     return None
             return act
+    
+    def update(w, x, z, Q_old, gamma, alpha, observation, done, reward, action_prime, X:SARSA_FeatureAgent):
+        x_prime = X(observation, done, action_prime)
+        Q = np.dot(w,x)
+        Q_prime = np.dot(w, x_prime)
+        delta = reward + gamma * Q_prime - Q
+        z = lam * gamma * z + (1-(alpha * gamma * lam * np.dot(z,x))) * x
+        w = w + alpha * (delta + Q - Q_old) * z - alpha * (Q - Q_old) * x
+        return w, z, Q_prime, x_prime
 
     w = np.zeros((X.feature_vector_len() * game.col_count), dtype=np.float32)
     explor = .2
@@ -45,25 +54,42 @@ def SarsaLambda(
     win_count = 0
     
     for _ in tqdm(range(num_episode)):
-        observation = Game(NUM_ROWS, NUM_COLS) #change game reset
+        observation = Game(NUM_ROWS, NUM_COLS) #change game reset'
+        #add opponent action if SARSA agent is p2
+        # opponent_action = Opponent.get_action(observation)
+        # observation.drop_piece(opponent_action, Opponent.color)
+        flipped_board = np.fliplr(np.copy(observation.board))
+        flipped_observation = Game(NUM_ROWS, NUM_COLS, flipped_board)
+
         done = len(game.get_valid_moves()) == 0
         action = epsilon_greedy_policy(observation, done, w, explor)
+        flipped_action =  game.col_count - 1 - action
         x = X(observation, done, action)
+        flipped_x = X(flipped_observation, done, flipped_action)
         z = np.zeros(X.feature_vector_len() * observation.col_count)
+        flipped_z = np.copy(z)
         Q_old = 0
+        flipped_Q_old = 0
         while not done:
             observation, reward, done, win_count = step(observation, action, Opponent, win_count)
             action_prime = epsilon_greedy_policy(observation, done, w, epsilon=explor)
             if action_prime == None:
                 break
-            x_prime = X(observation, done, action_prime)
-            Q = np.dot(w,x)
-            Q_prime = np.dot(w, x_prime)
-            delta = reward + gamma * Q_prime - Q
-            z = lam * gamma * z + (1-(alpha * gamma * lam * np.dot(z,x))) * x
-            w = w + alpha * (delta + Q - Q_old) * z - alpha * (Q - Q_old) * x
-            Q_old = Q_prime
-            x = x_prime
+            flipped_action_prime = game.col_count - 1 - action_prime
+            flipped_board = np.fliplr(np.copy(observation.board))
+            flipped_observation = Game(NUM_ROWS, NUM_COLS, flipped_board)
+            
+            w, z, Q_old, x = update(w, x, z, Q_old, gamma, alpha, observation, done, reward, action_prime, X)
+            w, flipped_z, flipped_Q_old, flipped_x = update(w, flipped_x, flipped_z, flipped_Q_old, gamma, alpha, flipped_observation, done, reward, flipped_action_prime, X)
+
+                # x_prime = X(observation, done, action_prime)
+                # Q = np.dot(w,x)
+                # Q_prime = np.dot(w, x_prime)
+                # delta = reward + gamma * Q_prime - Q
+                # z = lam * gamma * z + (1-(alpha * gamma * lam * np.dot(z,x))) * x
+                # w = w + alpha * (delta + Q - Q_old) * z - alpha * (Q - Q_old) * x
+                # Q_old = Q_prime
+                # x = x_prime
             action = action_prime
             explor = explor * (1-e_decay)
 

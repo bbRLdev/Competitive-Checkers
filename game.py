@@ -18,6 +18,7 @@ class Game():
             self.board = np.copy(board)
 
 
+
     def is_valid_location(self, col):
         return self.board[self.row_count-1][col] == 0
 
@@ -126,3 +127,33 @@ class Game():
 
 
 
+class FlipGame(Game):
+    def __init__(self, r, c, board=None):
+        super().__init__(r, c, board)
+    
+    def is_valid_location(self, col):
+        return super().is_valid_location(col)
+
+    def get_valid_moves(self):
+        return super().get_valid_moves()
+
+    def drop_piece(self, col, piece):
+        return super().drop_piece(col, piece)
+
+    def get_next_open_row(self, col):
+        return super().get_next_open_row(col)
+    
+    def get_board_dimensions(self):
+        return super().get_board_dimensions()
+    
+    def print_board(self):
+        return super().print_board()
+    
+    def generate_successor(self, col, piece):
+        return super().generate_successor(col, piece)
+    
+    def winning_move_faster(self, piece):
+        return super().winning_move_faster(piece)
+    
+    def draw_board(self, screen, square_size):
+        return super().draw_board(screen, square_size)
