@@ -6,7 +6,7 @@ import pygame
 from agent import Agent, LegacyAlphaBeta, RandomAgent, AlphaBetaAgent, SARSA_FeatureAgent
 from tqdm import tqdm
 args = sys.argv
-NUM_ROWS, NUM_COLS = int(args[1]), int(args[2])
+NUM_ROWS, NUM_COLS, NUM_EPISODES = int(args[1]), int(args[2]), int(args[3])
 
 def SarsaLambda(
     game: Game, # connect-4 game
@@ -53,11 +53,12 @@ def SarsaLambda(
     e_decay = .01
     win_count = 0
     
-    for _ in tqdm(range(num_episode)):
+    for ep in tqdm(range(num_episode)):
         observation = Game(NUM_ROWS, NUM_COLS) #change game reset'
-        #add opponent action if SARSA agent is p2
-        # opponent_action = Opponent.get_action(observation)
-        # observation.drop_piece(opponent_action, Opponent.color)
+        #add opponent action if SARSA agent is p2 / alternate initiative each episode
+        if ep % 2 == 0:
+            opponent_action = Opponent.get_action(observation)
+            observation.drop_piece(opponent_action, Opponent.color)
         flipped_board = np.fliplr(np.copy(observation.board))
         flipped_observation = Game(NUM_ROWS, NUM_COLS, flipped_board)
 
@@ -139,5 +140,5 @@ print(SarsaLambda(
     0.01, # step size
     sarsa_agent,
     alpha, #opponent
-    1000, # episode
+    NUM_EPISODES, # episode
 )) 

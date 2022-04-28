@@ -14,7 +14,7 @@ print(w)
 p1 = SARSA_FeatureAgent(1, 7)
 p1.set_weights(w)
 
-p2 = HumanAgent(2)
+p2 = AlphaBetaAgent(2, 2)
 wins = 0
 # p2 = RandomAgent(2)
 for _ in tqdm(range(10)):

@@ -189,13 +189,14 @@ class AlphaBetaAgent(Agent):
         beta =  float("inf")
         result = self.alpha_beta(0, 0, alpha, beta, game)
         return result[1]
+
     
     def alpha_beta(self, depth, index, alpha, beta, game: Game):
         # terminal state, return evaluation function value
         if(game.winning_move(self.color) or game.winning_move(self.opponent_color) or depth == self.depth * 2):
-          return self.evaluation_function(game), "" 
+          return self.evaluation_function(game), None 
         v = 0
-        action = ""
+        action = None
         # Maximizing agent
         if index == 0:
             v = float("-inf")
