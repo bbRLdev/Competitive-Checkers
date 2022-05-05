@@ -1,21 +1,22 @@
 import numpy as np
 import sys
 from tqdm import tqdm
-from agent import AlphaBetaAgent, SARSA_FeatureAgent, RandomAgent, LegacyAlphaBeta, HumanAgent
+from agent import AlphaBetaAgent, RandomAlphaBeta, SARSA_FeatureAgent, RandomAgent, LegacyAlphaBeta, HumanAgent
 from game import Game
 
 args = sys.argv
 NUM_ROWS, NUM_COLS = int(args[1]), int(args[2])
 
-w = np.load("10000iter-weights.npy")
+# w = np.load("10000iter-weights.npy")
 
-print(w)
+# print(w)
 
-p1 = SARSA_FeatureAgent(1, 7)
-p1.set_weights(w)
+p1 = AlphaBetaAgent(1, 1)
+# p1.set_weights(w)
 
-p2 = AlphaBetaAgent(2, 2)
+p2 = RandomAlphaBeta(2, 1)
 wins = 0
+draws = 0
 # p2 = RandomAgent(2)
 for g in tqdm(range(10)):
     # p1 go first
@@ -33,6 +34,7 @@ for g in tqdm(range(10)):
             break
         if len(game.get_valid_moves()) == 0:
             print("DRAW")
+            draws += 1
             break
         #p2 turn
         p2_move = p2.get_action(game)
@@ -44,6 +46,7 @@ for g in tqdm(range(10)):
             break
         if len(game.get_valid_moves()) == 0:
             print("DRAW")
+            draws += 1
             break
     # #p2 go first
     # else:
@@ -72,4 +75,4 @@ for g in tqdm(range(10)):
     #             print("DRAW")
     #             break
 
-print(wins)
+print(wins, draws)

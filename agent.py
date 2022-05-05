@@ -4,6 +4,7 @@ import math
 from scipy.signal import convolve2d 
 
 FEAT_EXTRACTOR_LENS = [7,7,7,7,7]
+FEAT_EXTRACTOR_LENS_2 = [42]
 
 class Agent(): 
     def __init__(self, color) -> None:
@@ -44,7 +45,7 @@ class SARSA_FeatureAgent(Agent):
         super().__init__(color)
         # self.feature_functions = [self.opp_win, self.my_win, self.losing_moves, self.opp_pieces_per_col, self.my_pieces_per_col, self.base3_rows, self.base3_cols]
         self.feature_functions = [self.opp_win, self.my_win, self.losing_moves, self.opp_pieces_per_col, self.my_pieces_per_col]
-
+        # self.feature_functions = [self.get_raw_board]
         self.num_actions = nA
 
     def get_perimeter(self, game: Game):
@@ -57,7 +58,9 @@ class SARSA_FeatureAgent(Agent):
                 if r + 1 < game.row_count and game.board[r + 1][c] == 0:
                     off_perimeter.append((r + 1, c))
         return perimeter, off_perimeter
-    
+    def get_raw_board(self, game: Game):
+        copy = np.copy(game.board)
+        return np.ravel(copy)
     
     def get_action(self, game : Game) -> int:
         if len(game.get_valid_moves()) == 0:
@@ -193,17 +196,18 @@ class AlphaBetaAgent(Agent):
     
     def alpha_beta(self, depth, index, alpha, beta, game: Game):
         # terminal state, return evaluation function value
-        if(game.winning_move(self.color) or game.winning_move(self.opponent_color) or depth == self.depth * 2):
+        legal_actions = game.get_valid_moves()
+        if(len(legal_actions) == 0 or game.winning_move_faster(self.color) or game.winning_move_faster(self.opponent_color) or depth == self.depth * 2):
           return self.evaluation_function(game), None 
         v = 0
         action = None
         # Maximizing agent
+        
         if index == 0:
             v = float("-inf")
             # iterate through legal actions for the agent
             # for alpha_beta, we only want to generate the states we need.
-            legalActions = game.get_valid_moves()
-            for x in legalActions:
+            for x in legal_actions:
                 # generate (action, state) tuples
                 pair = (x, game.generate_successor(x, self.color))
                 oldVal = v
@@ -219,8 +223,7 @@ class AlphaBetaAgent(Agent):
         # Minimizing agent
         else:
             v = float("inf")
-            legalActions = game.get_valid_moves()
-            for x in legalActions:
+            for x in legal_actions:
                 pair = (x, game.generate_successor(x, self.opponent_color))
                 oldVal = v
                 costOfAction = self.alpha_beta(depth + 1, (index + 1) % 2, alpha, beta, pair[1])[0]
@@ -270,7 +273,23 @@ class AlphaBetaAgent(Agent):
                 score -= 10
 
         return score
-
+class RandomAlphaBeta(AlphaBetaAgent):
+    def __init__(self, color, depth, depth_rand=0.5):
+        super().__init__(color, depth)
+        self.depth_rand = depth_rand
+        
+    
+    def get_action(self, game):
+        alpha = float("-inf")
+        beta =  float("inf")
+        change = 0
+        if np.random.rand() < self.depth_rand:
+            self.depth = self.depth + 1
+            change += 1
+        result = self.alpha_beta(0, 0, alpha, beta, game)
+        self.depth = self.depth - change
+        return result[1]
+        
 class LegacyAlphaBeta(AlphaBetaAgent):
     def __init__(self, color, depth) -> None:
         super().__init__(color, depth)

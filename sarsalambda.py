@@ -6,8 +6,7 @@ import numpy as np
 import pygame
 from agent import Agent, LegacyAlphaBeta, RandomAgent, AlphaBetaAgent, SARSA_FeatureAgent
 from tqdm import tqdm
-args = sys.argv
-NUM_ROWS, NUM_COLS, NUM_EPISODES = int(args[1]), int(args[2]), int(args[3])
+NUM_ROWS, NUM_COLS, NUM_EPISODES = 6, 7, 1000
 import matplotlib.pyplot as plt
 
 def SarsaLambda(
@@ -55,11 +54,12 @@ def SarsaLambda(
 
     w = np.zeros((X.feature_vector_len() * game.col_count), dtype=np.float32)
     explor = .1
-    e_decay = 0
-    win_count = 0
+    e_decay = .0035
+    lr_decay = .01
 
+    win_count = 0
     interval_wins = 0.0
-    interval_len = 100.0
+    interval_len = 10.0
     
     for ep in tqdm(range(num_episode)):
         observation = Game(NUM_ROWS, NUM_COLS) #change game reset'
@@ -71,14 +71,20 @@ def SarsaLambda(
         flipped_observation = Game(NUM_ROWS, NUM_COLS, flipped_board)
 
         done = len(game.get_valid_moves()) == 0
+        
         action = epsilon_greedy_policy(observation, done, w, explor)
         flipped_action =  game.col_count - 1 - action
+        
         x = X(observation, done, action)
         flipped_x = X(flipped_observation, done, flipped_action)
+        
         z = np.zeros(X.feature_vector_len() * observation.col_count)
         flipped_z = np.copy(z)
+        
         Q_old = 0
         flipped_Q_old = 0
+
+        lr = alpha / (1.0 + ep * lr_decay)
 
         win = 0
         if ep % interval_len == 0:
@@ -96,13 +102,13 @@ def SarsaLambda(
             flipped_board = np.fliplr(np.copy(observation.board))
             flipped_observation = Game(NUM_ROWS, NUM_COLS, flipped_board)
             
-            w, z, Q_old, x = update(w, x, z, Q_old, lam, gamma, alpha, observation, done, reward, action_prime, X)
-            w, flipped_z, flipped_Q_old, flipped_x = update(w, flipped_x, flipped_z, flipped_Q_old, lam, gamma, alpha, flipped_observation, done, reward, flipped_action_prime, X)
+            w, z, Q_old, x = update(w, x, z, Q_old, lam, gamma, lr, observation, done, reward, action_prime, X)
+            w, flipped_z, flipped_Q_old, flipped_x = update(w, flipped_x, flipped_z, flipped_Q_old, lam, gamma, lr, flipped_observation, done, reward, flipped_action_prime, X)
 
             action = action_prime
             move_count += 1
-            # explor = explor * (1-e_decay)
 
+        # explor = explor * (1-e_decay)
         X.set_weights(w)
         res, eval_moves = play_game(X, Opponent)
         if res == 1:
@@ -111,10 +117,6 @@ def SarsaLambda(
         policy_performance.append(performance)
         if ep % interval_len == interval_len - 1:
             msgs = ["interval end at ep:" + str(ep) + ",  win %: " + str(interval_wins / interval_len) + "\n"]
-            # X.set_weights(w)
-            # res, eval_moves = play_game(X, Opponent)
-            # performance = res * (21 - eval_moves) / 17
-            # policy_performance.append(performance)
             msgs.append("result: " + str(res) + " in " + str(eval_moves) + " moves\n")
             diagnostic_file.writelines(msgs)
 
@@ -122,8 +124,13 @@ def SarsaLambda(
     print("win count: ", win_count)
     np.save("out.npy", w)
     diagnostic_file.close()
+
+    smooth_performance = []
+    for i in range(len(policy_performance) // 10):
+        smooth_performance.append(np.mean(policy_performance[i*10: i*10+10]))
+    
     plt.figure()
-    plt.plot(range(1, num_episode + 1), policy_performance)
+    plt.plot(range(1, num_episode // 10 + 1), smooth_performance)
     plt.title("Performance of policy during training")
     plt.xlabel("Trial number")
     plt.ylabel("Policy performance")
@@ -176,26 +183,3 @@ def play_game(p1 : Agent, p2 : Agent, draw = False):
            return -1, move_count
         if len(game.get_valid_moves()) == 0:
             return 0, move_count
-
-
-game = Game(NUM_ROWS, NUM_COLS)
-
-# SQUARESIZE = 100
-# width = NUM_COLS * SQUARESIZE
-# height = (NUM_ROWS+1) * SQUARESIZE
-# size = (width, height)
-# screen = pygame.display.set_mode(size)
-
-alpha = AlphaBetaAgent(2, 2)
-rando = RandomAgent(2)
-sarsa_agent = SARSA_FeatureAgent(1, NUM_COLS)
-print(SarsaLambda(
-    game, # connect-4 game
-    0.95, # discount factor
-    0.1, # decay rate
-    0.001, # step size
-    sarsa_agent,
-    alpha, #opponent
-    NUM_EPISODES, # episode
-)) 
-
