@@ -43,21 +43,9 @@ class HumanAgent(Agent):
 class SARSA_FeatureAgent(Agent):
     def __init__(self, color, nA = 7, w=None) -> None:
         super().__init__(color)
-        # self.feature_functions = [self.opp_win, self.my_win, self.losing_moves, self.opp_pieces_per_col, self.my_pieces_per_col, self.base3_rows, self.base3_cols]
         self.feature_functions = [self.opp_win, self.my_win, self.losing_moves,  self.opp_pieces_per_col, self.my_pieces_per_col]
-        # self.feature_functions = [self.get_raw_board]
         self.num_actions = nA
 
-    def get_perimeter(self, game: Game):
-        perimeter = []
-        off_perimeter = []
-        for c in range(len(game.col_count)):
-            r = game.get_next_open_row(c)
-            if r != None:
-                perimeter.append((r, c))
-                if r + 1 < game.row_count and game.board[r + 1][c] == 0:
-                    off_perimeter.append((r + 1, c))
-        return perimeter, off_perimeter
     def get_raw_board(self, game: Game):
         copy = np.copy(game.board)
         return np.ravel(copy)
@@ -261,77 +249,4 @@ class RandomAlphaBeta(AlphaBetaAgent):
         result = self.alpha_beta(0, 0, alpha, beta, game)
         self.depth = self.depth - change
         return result[1]
-        
-class LegacyAlphaBeta(AlphaBetaAgent):
-    def __init__(self, color, depth) -> None:
-        super().__init__(color, depth)
-    def evaluation_function(self, game: Game):
-        score = 0
-
-        def check_window(window):
-            score = 0
-            player_count = 0
-            opp_count = 0
-            empty_count = 0
-            for i in range(len(window)):
-                if window[i] == self.color:
-                    player_count += 1
-                elif window[i] == 0:
-                    empty_count += 1
-                else:
-                    opp_count +=1
-            
-            if player_count == 4:
-                score = 100
-            elif player_count == 3 and empty_count == 1:
-                score = 5
-            elif player_count == 2 and empty_count == 2:
-                score = 2
-            if opp_count == 3 and empty_count == 1:
-                score -= 4
-            return score
-        
-        #check horizontal
-        for i in range(game.row_count):
-            for j in range(game.col_count - 3):
-                window = np.zeros(4)
-                for k in range(j, j + 4):
-                    window[k-j] = game.board[i][k]
-                score += check_window(window)
-
-        #score vertical
-        for j in range(game.col_count):
-            for i in range (game.row_count - 3):
-                window = np.zeros(4)
-                for k in range(i, i + 4):
-                    window[k-i] = game.board[k][j]
-                score += check_window(window)
-        
-        #score diagonals
-        for i in range(game.row_count):
-            for j in range(game.col_count):
-                window = np.zeros(4)
-                index = 0
-                diagI = i
-                diagJ = j
-                while diagI >= 0 and diagJ < game.col_count and index < 4:
-                    window[index] = game.board[diagI][diagJ]
-                    diagI -= 1
-                    diagJ += 1
-                    index += 1
-                if index == 4:
-                    score += check_window(window)
-                #other diag
-                window = np.zeros(4)
-                index = 0
-                diagI = i
-                diagJ = j
-                while diagI < game.row_count and diagJ < game.col_count and index < 4:
-                    window[index] = game.board[diagI][diagJ]
-                    diagI += 1
-                    diagJ += 1
-                    index += 1
-                if index == 4:
-                    score += check_window(window)
-            
-            return score
+       
