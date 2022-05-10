@@ -129,34 +129,6 @@ class SARSA_FeatureAgent(Agent):
     def my_pieces_per_col(self, game):
         return pieces_per_col(self.color, game.board)
 
-    # def base3_rows(self, game):
-    #     board = game.board
-    #     ret = []
-    #     rows, cols = board.shape #get dimensions of board
-    #     for r in range(rows):
-    #         val = 0.0
-    #         power = 0
-    #         for c in range(cols):
-    #             val += board[r][c] * math.pow(3, power)
-    #             power += 1
-    #         val = val / (math.pow(3, 7) - 1) # normalize
-    #         ret.append(val)
-    #     return ret
-
-    # def base3_cols(self, game):
-    #     board = game.board
-    #     ret = []
-    #     rows, cols = board.shape #get dimensions of board
-    #     for c in range(cols):
-    #         val = 0.0
-    #         power = 0
-    #         for r in range(rows):
-    #             val += board[r][c] * math.pow(3, power)
-    #             power += 1
-    #         val = val / (math.pow(3, 6) - 1) #normalize
-    #         ret.append(val)
-    #     return ret
-
 def pieces_per_col(color, board):
     ret = []
     rows, cols = board.shape #get dimensions of board
