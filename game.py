@@ -47,7 +47,8 @@ class Game():
         suc = Game(self.row_count, self.col_count, self.board)
         suc.drop_piece(col, piece)
         return suc
-
+    # Credit to this post for giving us the idea of the AB evaluation function/check winning condition
+    # https://stackoverflow.com/questions/29949169/python-connect-4-check-win-function
     def winning_move_faster(self, piece):
         horizontal_kernel = np.array([[1, 1, 1, 1]])
         vertical_kernel = np.transpose(horizontal_kernel)

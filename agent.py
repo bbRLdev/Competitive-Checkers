@@ -44,7 +44,7 @@ class SARSA_FeatureAgent(Agent):
     def __init__(self, color, nA = 7, w=None) -> None:
         super().__init__(color)
         # self.feature_functions = [self.opp_win, self.my_win, self.losing_moves, self.opp_pieces_per_col, self.my_pieces_per_col, self.base3_rows, self.base3_cols]
-        self.feature_functions = [self.opp_win, self.my_win, self.losing_moves, self.opp_pieces_per_col, self.my_pieces_per_col]
+        self.feature_functions = [self.opp_win, self.my_win, self.losing_moves,  self.opp_pieces_per_col, self.my_pieces_per_col]
         # self.feature_functions = [self.get_raw_board]
         self.num_actions = nA
 
@@ -192,8 +192,8 @@ class AlphaBetaAgent(Agent):
         beta =  float("inf")
         result = self.alpha_beta(0, 0, alpha, beta, game)
         return result[1]
-
-    
+    # Credit to this post for giving us the idea of the AB evaluation function/check winning condition
+    # https://stackoverflow.com/questions/29949169/python-connect-4-check-win-function
     def alpha_beta(self, depth, index, alpha, beta, game: Game):
         # terminal state, return evaluation function value
         legal_actions = game.get_valid_moves()

@@ -49,24 +49,19 @@ def SarsaLambda(
         w = w + alpha * (delta + Q - Q_old) * z - alpha * (Q - Q_old) * x
         return w, z, Q_prime, x_prime
 
-    diagnostic_file = open("Learning_Stats.txt", "w")
     policy_performance = []
 
     w = np.zeros((X.feature_vector_len() * game.col_count), dtype=np.float32)
-    explor = .1
-    e_decay = .0035
-    lr_decay = .01
+    explor = .8
+    e_decay = .00375
+    lr_decay = .008
 
     win_count = 0
-    interval_wins = 0.0
-    interval_len = 10.0
+    lr = alpha
     
     for ep in tqdm(range(num_episode)):
-        observation = Game(NUM_ROWS, NUM_COLS) #change game reset'
-        #add opponent action if SARSA agent is p2 / alternate initiative each episode
-        # if np.random.rand() < .5:
-        #     opponent_action = Opponent.get_action(observation)
-        #     observation.drop_piece(opponent_action, Opponent.color)
+        observation = Game(NUM_ROWS, NUM_COLS) #change) game reset'
+
         flipped_board = np.fliplr(np.copy(observation.board))
         flipped_observation = Game(NUM_ROWS, NUM_COLS, flipped_board)
 
@@ -87,8 +82,6 @@ def SarsaLambda(
         lr = alpha / (1.0 + ep * lr_decay)
 
         win = 0
-        if ep % interval_len == 0:
-            interval_wins = 0.0
 
         move_count = 0
         while not done:
@@ -102,42 +95,24 @@ def SarsaLambda(
             flipped_board = np.fliplr(np.copy(observation.board))
             flipped_observation = Game(NUM_ROWS, NUM_COLS, flipped_board)
             
-            w, z, Q_old, x = update(w, x, z, Q_old, lam, gamma, lr, observation, done, reward, action_prime, X)
-            w, flipped_z, flipped_Q_old, flipped_x = update(w, flipped_x, flipped_z, flipped_Q_old, lam, gamma, lr, flipped_observation, done, reward, flipped_action_prime, X)
+            w, z, Q_old, x = update(w, x, z, Q_old, lam, gamma, alpha, observation, done, reward, action_prime, X)
+            w, flipped_z, flipped_Q_old, flipped_x = update(w, flipped_x, flipped_z, flipped_Q_old, lam, gamma, alpha, flipped_observation, done, reward, flipped_action_prime, X)
 
             action = action_prime
             move_count += 1
 
-        # explor = explor * (1-e_decay)
+        explor = explor * (1-e_decay)
+        
+        #eval
         X.set_weights(w)
         res, eval_moves = play_game(X, Opponent)
-        if res == 1:
-            interval_wins += 1
         performance = res * (21 - eval_moves) / 17
         policy_performance.append(performance)
-        if ep % interval_len == interval_len - 1:
-            msgs = ["interval end at ep:" + str(ep) + ",  win %: " + str(interval_wins / interval_len) + "\n"]
-            msgs.append("result: " + str(res) + " in " + str(eval_moves) + " moves\n")
-            diagnostic_file.writelines(msgs)
 
-    # X.set_weights(w)
     print("win count: ", win_count)
     np.save("out.npy", w)
-    diagnostic_file.close()
 
-    smooth_performance = []
-    for i in range(len(policy_performance) // 10):
-        smooth_performance.append(np.mean(policy_performance[i*10: i*10+10]))
-    
-    plt.figure()
-    plt.plot(range(1, num_episode // 10 + 1), smooth_performance)
-    plt.title("Performance of policy during training")
-    plt.xlabel("Trial number")
-    plt.ylabel("Policy performance")
-    plt.savefig('performance_graph.png')
-
-    # print(boards)
-    return w
+    return w, policy_performance
 
 def step(game : Game, action, opponent : Agent):
     win_count = 0
@@ -147,7 +122,7 @@ def step(game : Game, action, opponent : Agent):
     game.drop_piece(action, player_color)
     reward = 0.0
     if game.winning_move_faster(player_color):
-        reward = 1.0
+        reward = 10.0
         win_count += 1
         return game, reward, True, win_count
     opponent_action = opponent.get_action(game)
@@ -157,7 +132,7 @@ def step(game : Game, action, opponent : Agent):
     game.drop_piece(opponent_action, opponent.color)
 
     if game.winning_move_faster(opponent.color):
-        reward = -1.0
+        reward = -10.0
         return game, reward, True, win_count
     return game, 0.0, len(game.get_valid_moves()) == 0, win_count
 
